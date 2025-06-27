@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>测试在线海上风电场</title>
+    <link rel="stylesheet" href="ol.css">
+    <script src = "ol.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+
+    header {
+      height: 60px;
+      background-color: #003366;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      font-size: 20px;
+      justify-content: space-between; /* 保持左右两端对齐 */
+    }
+
+    .dropdown {
+      position: relative;
+      display: inline-block;
+      margin: 0; /* 移除默认的外边距 */
+    }
+
+    .dropbtn {
+      background-color: #0d53a4;
+      color: white;
+      padding: 16px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      border: white solid 1px;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1; /* 确保下拉内容显示在最上面 */
+    }
+
+    .dropdown-content button {
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      width: 100%; /* 确保每个按钮占满下拉内容的宽度 */
+    }
+
+    .dropdown-content button:hover {
+      background-color: #f1f1f1;
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    .dropdown:hover .dropbtn {
+      background-color: #11a4e8;
+    }
+    
+    #map {
+      position: absolute;
+      top: 60px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+    .ol-popup {
+      position: absolute;
+      background-color: white;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #cccccc;  
+      bottom: 12px;
+      min-width: 280px;
+    }
+    .ol-popup:after, .ol-popup:before {
+            top: 100%;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+    }
+    .ol-popup:after {
+            border-top-color: white;
+            border-width: 10px;
+            left: 48px;
+            margin-left: -10px;
+    }
+    .ol-popup:before {
+            border-top-color: #cccccc;
+            border-width: 11px;
+            left: 48px;
+            margin-left: -11px;
+    }
+    .ol-popup-closer {
+            text-decoration: none;
+            position: absolute;
+            top: 2px;
+            right: 8px;
+    }
+    .ol-popup-closer:after {
+            content: "✖";
+    } 
+  </style>
+</head>
+<body>
+  <header>
+    <div>海上风电场可视化平台</div>
+    <div id = "popup" class = "ol-popup">
+      <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+      <div id="popup-content"></div>
+    </div>
+    <div>
+      <div class="dropdown">
+        <button class="dropbtn">在线底图</button>
+        <div class="dropdown-content">
+          <button onclick="switchBasemap('OpenStreetMap')">OpenStreetMap</button>
+          <button onclick="switchBasemap('BingMaps')">BingMap</button>
+          <button onclick="switchBasemap('EsriMap')">EsriMap</button>
+
+        </div>
+      </div>
+      <div class="dropdown">
+        <button class="dropbtn">风电场分布</button>
+        <div class="dropdown-content">
+          <button onclick="switchWindFrammap('GuangDong')">广东规划风机</button>
+          <button onclick="switchWindFrammap('FanShi')">帆石二风电场</button>
+          <button onclick="switchWindFrammap('QingZhou')">青州风电场</button>
+          <button onclick="switchWindFrammap('HongHai')">红海湾风电场</button>
+        </div>
+      </div>
+      <div class="dropdown">
+        <button class="dropbtn">CPT数据</button>
+        <div class="dropdown-content">
+          <button onclick="switchCPTmap('CPTFanShi')">帆石二CPT</button>
+          <button onclick="switchCPTmap('CPTQingZhou')">青州CPT</button>
+          <button onclick="switchCPTmap('CPTHongHai')">红海湾CPT</button>
+        </div>
+      </div>
+      <div class="dropdown">
+        <button class="dropbtn">用户中心</button>
+        <div class="dropdown-content">
+          <button onclick="switchBasemap('OpenStreetMap')">账号申请</button>
+          <button onclick="switchBasemap('BingMaps')">个人中心</button>
+          <button onclick="switchBasemap('EsriMap')">用户反馈</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div id = "map"></div> 
+  <script>
+    const map = new ol.Map({
+            target : 'map',
+            layers : [
+                new ol.layer.Tile({
+                    source : new ol.source.OSM()
+                }),
+            ],
+            view : new ol.View({
+                center : ol.proj.fromLonLat([115,22]),
+                zoom : 7
+            })
+    });
+    //--------切换底图--------  
+    function switchBasemap(basemapType){
+        let newLayer;
+        switch(basemapType){
+            case 'OpenStreetMap':
+                newLayer = new ol.layer.Tile({
+                    source : new ol.source.OSM()
+            });
+            break;
+            case 'BingMaps':
+                newLayer = new ol.layer.Tile({
+                    source : new ol.source.BingMaps({
+                        key : 'AkjzA7OhS4MIBjutL21bkAop7dc41HSE0CNTR5c6HJy8JKc7U9U9RveWJrylD3XJ',
+                        imagerySet : 'Road'
+                        
+                    })
+                });
+            break;
+            case 'EsriMap':
+                newLayer = new ol.layer.Tile({
+                    source : new ol.source.XYZ({
+                        url : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                    })
+                });
+            break
+            default:
+                newLayer = new ol.layer.Tile({
+                    source : new ol.source.OSM()
+                });
+                break;
+        }
+        map.getLayers().clear();
+        map.addLayer(newLayer);
+    }
+    //--------切换风机规划图--------
+    function switchWindFrammap(basemapType){
+        let newLayer;
+        switch(basemapType){
+            case 'GuangDong':
+                newLayer = new ol.layer.Vector({
+                  source: new ol.source.Vector({
+                    url: '规划风电场_信息.json',
+                    projection: 'EPSG:4326 ',
+                    format: new ol.format.GeoJSON(),
+                    
+                  }),
+                  style : new ol.style.Style({
+                      fill : new ol.style.Fill({
+                          color : "#9370DB"
+                      }),
+                      stroke : new ol.style.Stroke({
+                          color : 'rgb(0, 0, 0)',
+                          width : 2
+                      })
+                  })
+               });
+
+            break;
+            case 'FanShi':
+                newLayer = new ol.layer.Vector({
+                  source: new ol.source.Vector({
+                    url: '帆石二WGS.json',
+                    projection: 'EPSG:4326 ',
+                    format: new ol.format.GeoJSON(),
+                    
+                  }),
+                  style : new ol.style.Style({
+                      fill : new ol.style.Fill({
+                          color : "#000080"
+                      }),
+                      stroke : new ol.style.Stroke({
+                          color : 'rgb(0, 0, 0)',
+                          width : 2
+                      })
+                  })
+               });
+            break;
+            case 'QingZhou':
+                newLayer = new ol.layer.Vector({
+                  source: new ol.source.Vector({
+                    url: '青州五七WGS.json',
+                    projection: 'EPSG:4326 ',
+                    format: new ol.format.GeoJSON(),
+                    
+                  }),
+                  style : new ol.style.Style({
+                      fill : new ol.style.Fill({
+                          color : "#006400"
+                      }),
+                      stroke : new ol.style.Stroke({
+                          color : 'rgb(0, 0, 0)',
+                          width : 2
+                      })
+                  })
+               });
+            break
+            case 'HongHai':
+                newLayer = new ol.layer.Vector({
+                  source: new ol.source.Vector({
+                    url: '红海湾WGS.json',
+                    projection: 'EPSG:4326 ',
+                    format: new ol.format.GeoJSON(),
+                    
+                  }),
+                  style : new ol.style.Style({
+                      fill : new ol.style.Fill({
+                          color : "#FFA500"
+                      }),
+                      stroke : new ol.style.Stroke({
+                          color : 'rgb(0, 0, 0)',
+                          width : 2
+                      })
+                  })
+               });
+            break;            
+            default:
+                newLayer = new ol.layer.Tile({
+                    source : new ol.source.OSM()
+                });
+                break;
+        }
+        //map.getLayers().clear();
+        map.addLayer(newLayer);
+
+        //-------弹出风电场信息窗口--------
+        var container = document.getElementById('popup');
+        var content = document.getElementById('popup-content');
+        var closer = document.getElementById('popup-closer');
+        var overlay = new ol.Overlay({
+            element: container,
+            autoPan: true,
+            autoPanAnimation: {
+                duration: 250
+            }
+        });
+        map.addOverlay(overlay);
+
+        closer.onclick = function() {
+            overlay.setPosition(undefined);
+            closer.blur();
+            return false;
+        };
+
+        // 单击事件
+        map.on('singleclick', function(event) {
+            var feature = map.forEachFeatureAtPixel(event.pixel, function(feature) {
+                return feature;
+            });
+
+            if (feature) {
+                var coordinates = feature.getGeometry().getCoordinates();
+                var properties = feature.getProperties();
+                var info = '';
+                for (var key in properties) {
+                    if (key !== 'geometry') {
+                        info += '<p>' + key + ': ' + properties[key] + '</p>';
+                    }
+                }
+                content.innerHTML = info;
+                overlay.setPosition(event.coordinate);
+            } else {
+                overlay.setPosition(undefined);
+                closer.blur();
+            }
+        });
+    }
+      
+</script>
+</body>
+</html>
